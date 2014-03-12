@@ -1,4 +1,5 @@
 #include "malloc.h"
+#include "syscall.h"
 
 static Header base; // first empty block
 static Header *freep = NULL; // start of free list
