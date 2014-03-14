@@ -2,7 +2,7 @@
 #define KCONFIG_H
 
 #define STACK_SIZE 384 /* Size of task stacks in words */
-#define HEAP_SIZE 128 /* Size of task heaps in bytes */
+#define HEAP_SIZE  192 /* Size of task heaps in bytes */
 #define TASK_LIMIT 8  /* Max number of tasks we can handle */
 #define PIPE_LIMIT (TASK_LIMIT * 2)
 #define PIPE_BUF   64 /* Size of largest atomic pipe message */
@@ -24,7 +24,7 @@
 #define EVENT_LIMIT (FILE_LIMIT * 2 + INTR_LIMIT + 1)
     /* Read and write event for each file, intr events and time event */
 
-#define PRIORITY_DEFAULT 20
+#define PRIORITY_DEFAULT
 #define PRIORITY_LIMIT (PRIORITY_DEFAULT * 2 - 1)
 
 #endif
