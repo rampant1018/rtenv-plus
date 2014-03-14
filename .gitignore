@@ -4,3 +4,5 @@ main.list
 main.map
 /build
 /data
+*.swp
+*~
