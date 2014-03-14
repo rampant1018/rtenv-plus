@@ -762,6 +762,11 @@ int main()
 	int timeup;
 	unsigned int tick_count = 0;
 
+        // for sbrk()
+        unsigned char heaps[HEAP_SIZE * TASK_LIMIT];
+        unsigned char *program_break;
+        unsigned char *previous_pb;
+
 	SysTick_Config(configCPU_CLOCK_HZ / configTICK_RATE_HZ);
 
 	init_rs232();
@@ -780,6 +785,9 @@ int main()
 
     /* Initialise event monitor */
     event_monitor_init(&event_monitor, events, ready_list);
+
+        /* Initialize program_break */
+        program_break = heaps; // program_break is located at last end location
 
 	/* Initialize fifos */
 	for (i = 0; i <= PATHSERVER_FD; i++)
@@ -954,6 +962,17 @@ int main()
 			        tasks[current_task].stack->r0 = -1;
 			    }
 			} break;
+                case 0xb: /* sbrk */
+                        if(program_break + tasks[current_task].stack->r0 >= heaps && program_break + tasks[current_task].stack->r0 < heaps + (HEAP_SIZE * TASK_LIMIT)) {
+                                previous_pb = program_break;
+                                program_break += tasks[current_task].stack->r0;
+                                tasks[current_task].stack->r0 = (unsigned int)previous_pb;
+                        }
+                        else {
+                                tasks[current_task].stack->r0 = -1;
+                        }
+                          
+                        break;
 		default: /* Catch all interrupts */
 			if ((int)tasks[current_task].stack->r7 < 0) {
 				unsigned int intr = -tasks[current_task].stack->r7 - 16;

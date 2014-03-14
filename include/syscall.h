@@ -1,3 +1,5 @@
+#ifndef SYSCALL_H
+#define SYSCALL_H
 #include <stddef.h>
 
 void *activate(void *stack);
@@ -18,3 +20,6 @@ int mknod(int fd, int mode, int dev);
 void sleep(unsigned int);
 
 void lseek(int fd, int offset, int whence);
+
+void *sbrk(unsigned int increment);
+#endif
