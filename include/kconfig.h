@@ -24,7 +24,7 @@
 #define EVENT_LIMIT (FILE_LIMIT * 2 + INTR_LIMIT + 1)
     /* Read and write event for each file, intr events and time event */
 
-#define PRIORITY_DEFAULT
+#define PRIORITY_DEFAULT 20
 #define PRIORITY_LIMIT (PRIORITY_DEFAULT * 2 - 1)
 
 #endif
