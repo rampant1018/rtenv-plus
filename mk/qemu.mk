@@ -5,6 +5,12 @@ qemu: $(OUTDIR)/$(TARGET).bin $(QEMU_STM32)
 		-monitor stdio \
 		-kernel $(OUTDIR)/$(TARGET).bin
 
+qemugdb: $(OUTDIR)/$(TARGET).bin $(QEMU_STM32)
+	$(QEMU_STM32) -M stm32-p103 \
+		-monitor stdio \
+		-gdb tcp::3333 -S \
+		-kernel $(OUTDIR)/$(TARGET).bin
+
 qemudbg: $(OUTDIR)/$(TARGET).bin $(QEMU_STM32)
 	$(QEMU_STM32) -M stm32-p103 \
 		-monitor stdio \
