@@ -61,6 +61,10 @@ int romfs_open(int device, char *path, struct romfs_entry *entry)
     lseek(device, 0, SEEK_SET);
     read(device, entry, sizeof(*entry));
 
+    if(strlen(path) == 1 && path[0] == '/') {
+        return 0;
+    }
+
     return romfs_open_recur(device, path, 0, entry);
 }
 
@@ -93,7 +97,13 @@ void romfs_server()
 	                device = request.device;
 	                from = request.from;
 	                pos = request.pos; /* searching starting position */
-	                pos = romfs_open(request.device, request.path + pos, &entry);
+
+                        if(strlen(request.path) == 1 && request.path[0] == '/') {
+                            pos = romfs_open(request.device, request.path, &entry);
+                        } 
+                        else {
+                            pos = romfs_open(request.device, request.path + pos, &entry);
+                        }
 
 	                if (pos >= 0) { /* Found */
 	                    /* Register */
@@ -103,8 +113,8 @@ void romfs_server()
                             mknod(status, 0, S_IFREG);
 	                        files[nfiles].fd = status;
 	                        files[nfiles].device = request.device;
-	                        files[nfiles].start = pos + sizeof(entry);
-	                        files[nfiles].len = entry.len;
+	                        files[nfiles].start = pos;// + sizeof(entry);
+	                        files[nfiles].len = entry.len + sizeof(entry);
 	                        nfiles++;
 	                    }
 	                }
