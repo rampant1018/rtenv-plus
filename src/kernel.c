@@ -708,6 +708,70 @@ void show_xxd(int argc, char *argv[])
     }
 }
 
+// ls
+void show_ls(int argc, char *argv[])
+{
+    struct romfs_entry {
+        uint32_t parent;
+        uint32_t prev;
+        uint32_t next;
+        uint32_t isdir;
+        uint32_t len;
+        uint8_t name[PATH_MAX];
+    } entry;
+    int readfd = -1;
+    int size;
+    int i;
+
+    if (argc == 1) { /* fallback to stdin */
+        readfd = open("/", 0);
+    }
+    else { /* open file of argv[1] */
+        readfd = open(argv[1], 0);
+
+        if (readfd < 0) { /* Open error */
+            write(fdout, "ls: ", 5);
+            write(fdout, argv[1], strlen(argv[1]) + 1);
+            write(fdout, ": No such file or directory\r\n", 31);
+            return;
+        }
+        
+        lseek(readfd, 0, SEEK_SET);
+        read(readfd, &entry, sizeof(entry));
+        if(entry.isdir != 1) {
+            write(fdout, "ls: ", 5);
+            write(fdout, argv[1], strlen(argv[1]) + 1);
+            write(fdout, ": Is not a directory\n\r", 23);
+            return;
+        }
+    }
+
+    // print tag
+    const char *tag_line = "  Size     Name   isdir\n\r";
+    write(fdout, tag_line, strlen(tag_line) + 1);
+
+    char tmpout[32];
+    lseek(readfd, 0x34, SEEK_SET);
+    while ((size = read(readfd, &entry, sizeof(entry))) && size != -1) {
+        itoa(entry.len, tmpout, 10); // Process file len
+        for(i = 5 - strlen(tmpout); i >= 0; i--) {
+            write(fdout, " ", 2);
+        }
+        write(fdout, tmpout, strlen(tmpout) + 1);
+
+        for(i = 8 - strlen((char *)entry.name); i >= 0; i--) { // Process file name
+            write(fdout, " ", 2);
+        }
+        write(fdout, entry.name, strlen((char *)entry.name) + 1);
+
+        if(entry.isdir == 1) { // Process isdir
+            write(fdout, "    [*]", 8);
+        }
+        write(fdout, "\n\r", 3);
+
+        lseek(readfd, entry.len, SEEK_CUR);
+    }
+}
 
 void first()
 {
