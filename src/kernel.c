@@ -620,6 +620,15 @@ char char_filter(char c, char fallback)
 
 #define XXD_WIDTH 0x10
 
+struct romfs_entry {
+    uint32_t parent;
+    uint32_t prev;
+    uint32_t next;
+    uint32_t isdir;
+    uint32_t len;
+    uint8_t name[PATH_MAX];
+};
+
 //xxd
 void show_xxd(int argc, char *argv[])
 {
@@ -715,6 +724,7 @@ void show_xxd(int argc, char *argv[])
 // cat
 void show_cat(int argc, char *argv[])
 {
+    struct romfs_entry entry;
     int readfd = -1;
     char buf[CAT_BUFFER_SIZE];
     char ch;
@@ -777,14 +787,7 @@ void show_cat(int argc, char *argv[])
 // ls
 void show_ls(int argc, char *argv[])
 {
-    struct romfs_entry {
-        uint32_t parent;
-        uint32_t prev;
-        uint32_t next;
-        uint32_t isdir;
-        uint32_t len;
-        uint8_t name[PATH_MAX];
-    } entry;
+    struct romfs_entry entry;
     int readfd = -1;
     int size;
     int i;
