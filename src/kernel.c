@@ -718,6 +718,7 @@ void show_cat(int argc, char *argv[])
     int readfd = -1;
     char buf[CAT_BUFFER_SIZE];
     char ch;
+    char chout[2] = {'\0', '\0'};
     int pos = 0;
     int size;
     int i;
@@ -740,16 +741,17 @@ void show_cat(int argc, char *argv[])
         // Then return if the file is directory.
     }
 
-    lseek(readfd, 0, SEEK_SET);
+    lseek(readfd, 0x34, SEEK_SET);
     while ((size = read(readfd, &ch, sizeof(ch))) && size != -1) {
         if (ch != -1 && ch != 0x04) { /* has something read */
             /* store in buffer */
-            buf[pos % XXD_WIDTH] = ch;
+            buf[pos % CAT_BUFFER_SIZE] = ch;
             pos++;
 
             if (pos % CAT_BUFFER_SIZE == 0) { /* buffer full */
                 for (i = 0; i < CAT_BUFFER_SIZE; i++) {
-                    write(fdout, &buf[i], 1);
+                    chout[0] = buf[i];
+                    write(fdout, chout, 2);
                     if(buf[i] == '\n') {
                         write(fdout, "\r", 2);
                     }
@@ -761,9 +763,10 @@ void show_cat(int argc, char *argv[])
         }
     }
 
-    if (pos % XXD_WIDTH != 0) { /* rest */
+    if (pos % CAT_BUFFER_SIZE != 0) { /* rest */
         for (i = 0; i < pos; i++) {
-            write(fdout, &buf[i], 1);
+            chout[0] = buf[i];
+            write(fdout, chout, 2);
             if(buf[i] == '\n') {
                 write(fdout, "\r", 2);
             }
