@@ -654,7 +654,7 @@ void show_xxd(int argc, char *argv[])
         }
     }
 
-    lseek(readfd, 0x34, SEEK_SET);
+    lseek(readfd, sizeof(struct romfs_entry), SEEK_SET);
     while ((size = read(readfd, &ch, sizeof(ch))) && size != -1) {
         if (ch != -1 && ch != 0x04) { /* has something read */
 
@@ -756,7 +756,7 @@ void show_cat(int argc, char *argv[])
         }
     }
 
-    lseek(readfd, 0x34, SEEK_SET);
+    lseek(readfd, sizeof(struct romfs_entry), SEEK_SET);
     while ((size = read(readfd, &ch, sizeof(ch))) && size != -1) {
         if (ch != -1 && ch != 0x04) { /* has something read */
             /* store in buffer */
@@ -825,7 +825,7 @@ void show_ls(int argc, char *argv[])
     write(fdout, tag_line, strlen(tag_line) + 1);
 
     char tmpout[32];
-    lseek(readfd, 0x34, SEEK_SET);
+    lseek(readfd, sizeof(struct romfs_entry), SEEK_SET);
     while ((size = read(readfd, &entry, sizeof(entry))) && size != -1) {
         itoa(entry.len, tmpout, 10); // Process file len
         for(i = 5 - strlen(tmpout); i >= 0; i--) {
