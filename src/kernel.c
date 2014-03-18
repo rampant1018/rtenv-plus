@@ -746,9 +746,14 @@ void show_cat(int argc, char *argv[])
             return;
         }
 
-        // TODO
-        // Need to check the file is directory or regular file.
-        // Then return if the file is directory.
+        lseek(readfd, 0, SEEK_SET);
+        read(readfd, &entry, sizeof(entry));
+        if(entry.isdir == 1) {
+            write(fdout, "cat: ", 6);
+            write(fdout, argv[1], strlen(argv[1]) + 1);
+            write(fdout, ": Is not a regular file\n\r", 26);
+            return;
+        }
     }
 
     lseek(readfd, 0x34, SEEK_SET);
