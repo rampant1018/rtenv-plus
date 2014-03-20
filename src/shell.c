@@ -1,19 +1,29 @@
+#include <stdint.h>
 #include "shell.h"
+#include "string.h"
+#include "syscall.h"
+#include "file.h"
+#include "clib.h"
+
+extern int fdout;
+extern int fdin;
+extern struct task_control_block tasks[TASK_LIMIT];
+extern size_t task_count;
+
+const char next_line[3] = {'\n','\r','\0'};
 
 /* Structure for command handler. */
 typedef struct {
     const char *name;
-    void (*func)(int, char *[]);
-    const *char desc;
+    void (*func)(int, char **);
+    const char *desc;
 } hcmd_entry;
 
 #define MKCL(n, d) {.name=#n, .func=n ## _command, .desc=d}
 
 const hcmd_entry cmd_list[] = {
     MKCL(echo, "Show words you input."),
-    MKCL(export, "Export environment variables."),
     MKCL(help, "List all commands you can use."),
-    MKCL(history, "Show latest commands entered."),
     MKCL(man, "Manual pager."),
     MKCL(ps, "List all the processes."),
     MKCL(xxd, "Make a hexdump."),
@@ -24,30 +34,6 @@ const hcmd_entry cmd_list[] = {
 void process_command(char *cmd) 
 {
 
-}
-
-//export
-void export_command(int argc, char *argv[])
-{
-	char *found;
-	char *value;
-	int i;
-
-	for (i = 1; i < argc; i++) {
-		value = argv[i];
-		while (*value && *value != '=')
-			value++;
-		if (*value)
-			*value++ = '\0';
-		found = find_envvar(argv[i]);
-		if (found)
-			strcpy(found, value);
-		else if (env_count < MAX_ENVCOUNT) {
-			strcpy(env_var[env_count].name, argv[i]);
-			strcpy(env_var[env_count].value, value);
-			env_count++;
-		}
-	}
 }
 
 //ps
@@ -73,9 +59,9 @@ void ps_command(int argc, char* argv[])
 		itoa(tasks[task_i].priority, task_info_priority, 10);
 
 		write(fdout, &task_info_pid , 2);
-		write_blank(3);
-			write(fdout, &task_info_status , 2);
-		write_blank(5);
+                write(fdout, "   ", 4);
+		write(fdout, &task_info_status , 2);
+                write(fdout, "     ", 6);
 		write(fdout, &task_info_priority , 3);
 
 		write(fdout, &next_line , 3);
@@ -91,10 +77,10 @@ void help_command(int argc, char* argv[])
 	int i;
 
 	write(fdout, &help_desp, sizeof(help_desp));
-	for (i = 0; i < CMD_COUNT; i++) {
-		write(fdout, cmd_data[i].cmd, strlen(cmd_data[i].cmd) + 1);
+	for (i = 0; i < (sizeof(cmd_list) / sizeof(cmd_list[0])); i++) {
+		write(fdout, cmd_list[i].name, strlen(cmd_list[i].name) + 1);
 		write(fdout, ": ", 3);
-		write(fdout, cmd_data[i].description, strlen(cmd_data[i].description) + 1);
+		write(fdout, cmd_list[i].desc, strlen(cmd_list[i].desc) + 1);
 		write(fdout, next_line, 3);
 	}
 }
@@ -131,30 +117,18 @@ void man_command(int argc, char *argv[])
 	if (argc < 2)
 		return;
 
-	for (i = 0; i < CMD_COUNT && strcmp(cmd_data[i].cmd, argv[1]); i++)
+	for (i = 0; i < (sizeof(cmd_list) / sizeof(cmd_list[0])) && strcmp(cmd_list[i].name, argv[1]); i++)
 		;
 
-	if (i >= CMD_COUNT)
+	if (i >= (sizeof(cmd_list) / sizeof(cmd_list[0])))
 		return;
 
 	write(fdout, "NAME: ", 7);
-	write(fdout, cmd_data[i].cmd, strlen(cmd_data[i].cmd) + 1);
+	write(fdout, cmd_list[i].name, strlen(cmd_list[i].name) + 1);
 	write(fdout, next_line, 3);
 	write(fdout, "DESCRIPTION: ", 14);
-	write(fdout, cmd_data[i].description, strlen(cmd_data[i].description) + 1);
+	write(fdout, cmd_list[i].desc, strlen(cmd_list[i].desc) + 1);
 	write(fdout, next_line, 3);
-}
-
-void history_command(int argc, char *argv[])
-{
-	int i;
-
-	for (i = cur_his + 1; i <= cur_his + HISTORY_COUNT; i++) {
-		if (cmd[i % HISTORY_COUNT][0]) {
-			write(fdout, cmd[i % HISTORY_COUNT], strlen(cmd[i % HISTORY_COUNT]) + 1);
-			write(fdout, next_line, 3);
-		}
-	}
 }
 
 void write_blank(int blank_num)

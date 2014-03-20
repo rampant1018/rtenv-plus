@@ -20,6 +20,7 @@
 #include "romdev.h"
 #include "event-monitor.h"
 #include "romfs.h"
+#include "shell.h"
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -31,28 +32,12 @@
 #define MAX_ENVVALUE 63
 
 /*Global Variables*/
-char next_line[3] = {'\n','\r','\0'};
 size_t task_count = 0;
 char cmd[HISTORY_COUNT][CMDBUF_SIZE];
 int cur_his=0;
 int fdout;
 int fdin;
 
-void check_keyword();
-void find_events();
-int fill_arg(char *const dest, const char *argv);
-void itoa(int n, char *dst, int base);
-void write_blank(int blank_num);
-
-
-
-/* Structure for environment variables. */
-typedef struct {
-	char name[MAX_ENVNAME + 1];
-	char value[MAX_ENVVALUE + 1];
-} evar_entry;
-evar_entry env_var[MAX_ENVCOUNT];
-int env_count = 0;
 
 
 struct task_control_block tasks[TASK_LIMIT];
@@ -217,187 +202,42 @@ void serial_readwrite_task()
 	}
 }
 
+#define SERIAL_TASK_BUFSIZE 128
 void serial_test_task()
 {
-	char put_ch[2]={'0','\0'};
 	char hint[] =  USER_NAME "@" USER_NAME "-STM32:~$ ";
-	int hint_length = sizeof(hint);
-	char *p = NULL;
+        char input[2] = {'0', '\0'};
+        char buf[SERIAL_TASK_BUFSIZE] = {0};
+        int count;
 
 	fdout = mq_open("/tmp/mqueue/out", 0);
 	fdin = open("/dev/tty0/in", 0);
 
-	for (;; cur_his = (cur_his + 1) % HISTORY_COUNT) {
-		p = cmd[cur_his];
-		write(fdout, hint, hint_length);
+        while(1) {
+            write(fdout, hint, strlen(hint));
 
-		while (1) {
-			read(fdin, put_ch, 1);
+            for(count = 0;;) {
+                read(fdin, input, 1);
 
-			if (put_ch[0] == '\r' || put_ch[0] == '\n') {
-				*p = '\0';
-				write(fdout, next_line, 3);
-				break;
-			}
-			else if (put_ch[0] == 127 || put_ch[0] == '\b') {
-				if (p > cmd[cur_his]) {
-					p--;
-					write(fdout, "\b \b", 4);
-				}
-			}
-			else if (p - cmd[cur_his] < CMDBUF_SIZE - 1) {
-				*p++ = put_ch[0];
-				write(fdout, put_ch, 2);
-			}
-		}
-		check_keyword();	
-	}
+                if(input[0] == '\r' || input[0] == '\n') {
+                    buf[count] = '\0';
+                    break;
+                }
+                else if(input[0] == 127 || input[0] == '\b') {
+                    if(count > 0) {
+                        count--;
+                        write(fdout, "\b \b", 4);
+                    }
+                }
+                else if(count < SERIAL_TASK_BUFSIZE) {
+                    buf[count++] = input[0];
+                    write(fdout, input, 2);
+                }
+            }
+
+            process_command(buf);
+        }
 }
-
-/* Split command into tokens. */
-char *cmdtok(char *cmd)
-{
-	static char *cur = NULL;
-	static char *end = NULL;
-	if (cmd) {
-		char quo = '\0';
-		cur = cmd;
-		for (end = cmd; *end; end++) {
-			if (*end == '\'' || *end == '\"') {
-				if (quo == *end)
-					quo = '\0';
-				else if (quo == '\0')
-					quo = *end;
-				*end = '\0';
-			}
-			else if (isspace((int)*end) && !quo)
-				*end = '\0';
-		}
-	}
-	else
-		for (; *cur; cur++)
-			;
-
-	for (; *cur == '\0'; cur++)
-		if (cur == end) return NULL;
-	return cur;
-}
-
-void check_keyword()
-{
-	char *argv[MAX_ARGC + 1] = {NULL};
-	char cmdstr[CMDBUF_SIZE];
-	int argc = 1;
-	int i;
-
-	find_events();
-	fill_arg(cmdstr, cmd[cur_his]);
-	argv[0] = cmdtok(cmdstr);
-	if (!argv[0])
-		return;
-
-	while (1) {
-		argv[argc] = cmdtok(NULL);
-		if (!argv[argc])
-			break;
-		argc++;
-		if (argc >= MAX_ARGC)
-			break;
-	}
-
-	for (i = 0; i < CMD_COUNT; i++) {
-		if (!strcmp(argv[0], cmd_data[i].cmd)) {
-			cmd_data[i].func(argc, argv);
-			break;
-		}
-	}
-	if (i == CMD_COUNT) {
-		write(fdout, argv[0], strlen(argv[0]) + 1);
-		write(fdout, ": command not found", 20);
-		write(fdout, next_line, 3);
-	}
-}
-
-void find_events()
-{
-	char buf[CMDBUF_SIZE];
-	char *p = cmd[cur_his];
-	char *q;
-	int i;
-
-	for (; *p; p++) {
-		if (*p == '!') {
-			q = p;
-			while (*q && !isspace((int)*q))
-				q++;
-			for (i = cur_his + HISTORY_COUNT - 1; i > cur_his; i--) {
-				if (!strncmp(cmd[i % HISTORY_COUNT], p + 1, q - p - 1)) {
-					strcpy(buf, q);
-					strcpy(p, cmd[i % HISTORY_COUNT]);
-					p += strlen(p);
-					strcpy(p--, buf);
-					break;
-				}
-			}
-		}
-	}
-}
-
-char *find_envvar(const char *name)
-{
-	int i;
-
-	for (i = 0; i < env_count; i++) {
-		if (!strcmp(env_var[i].name, name))
-			return env_var[i].value;
-	}
-
-	return NULL;
-}
-
-/* Fill in entire value of argument. */
-int fill_arg(char *const dest, const char *argv)
-{
-	char env_name[MAX_ENVNAME + 1];
-	char *buf = dest;
-	char *p = NULL;
-
-	for (; *argv; argv++) {
-		if (isalnum((int)*argv) || *argv == '_') {
-			if (p)
-				*p++ = *argv;
-			else
-				*buf++ = *argv;
-		}
-		else { /* Symbols. */
-			if (p) {
-				*p = '\0';
-				p = find_envvar(env_name);
-				if (p) {
-					strcpy(buf, p);
-					buf += strlen(p);
-					p = NULL;
-				}
-			}
-			if (*argv == '$')
-				p = env_name;
-			else
-				*buf++ = *argv;
-		}
-	}
-	if (p) {
-		*p = '\0';
-		p = find_envvar(env_name);
-		if (p) {
-			strcpy(buf, p);
-			buf += strlen(p);
-		}
-	}
-	*buf = '\0';
-
-	return buf - dest;
-}
-
 
 void first()
 {
