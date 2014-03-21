@@ -27,6 +27,7 @@ size_t fio_printf(int fd, const char *format, ...)
 {
     int i, count = 0;
     int tmpint;
+    char number[32];
     char *tmpcharp;
     char tmpout[2] = {'0', '\0'};
 
@@ -42,8 +43,8 @@ size_t fio_printf(int fd, const char *format, ...)
                 case 'd':
                 case 'X':
                     tmpint = va_arg(v1, int);
-                    itoa(tmpint, tmpcharp, (format[i + 1] == 'd' ? 10 : 16));
-                    write(fd, tmpcharp, strlen(tmpcharp) + 1);
+                    itoa(tmpint, number, (format[i + 1] == 'd' ? 10 : 16));
+                    write(fd, number, strlen(number) + 1);
                     break;
                 case 's':
                     tmpcharp = va_arg(v1, char *);

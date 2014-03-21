@@ -67,18 +67,7 @@ void ps_command(int argc, char* argv[])
 
         fio_printf(fdout, " PID STATUS PRIORITY\n\r");
 	for (task_i = 0; task_i < task_count; task_i++) {
-		char task_info_pid[2];
-		char task_info_status[2];
-		char task_info_priority[3];
-
-		task_info_pid[0]='0'+tasks[task_i].pid;
-		task_info_pid[1]='\0';
-		task_info_status[0]='0'+tasks[task_i].status;
-		task_info_status[1]='\0';			
-
-		itoa(tasks[task_i].priority, task_info_priority, 10);
-
-                fio_printf(fdout, "  %s     %s       %s\n\r", task_info_pid, task_info_status, task_info_priority);
+                fio_printf(fdout, "  %d     %d       %d\n\r", tasks[task_i].pid, tasks[task_i].status, tasks[task_i].priority);
 	}
 }
 
