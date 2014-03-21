@@ -1,5 +1,7 @@
 #include "string.h"
 #include "clib.h"
+#include "syscall.h"
+#include <stdarg.h>
 
 //this function helps to show int
 void itoa(int n, char *dst, int base)
@@ -19,4 +21,41 @@ void itoa(int n, char *dst, int base)
 	}
 
 	strcpy(dst, p);
+}
+
+size_t fio_printf(int fd, const char *format, ...)
+{
+    int i, count = 0;
+    int tmpint;
+    char *tmpcharp;
+
+    va_list(v1);
+    va_start(v1, format);
+
+    for(i = 0; format[i]; i++) {
+        if(format[i] == '%') {
+            switch(format[i + 1]) {
+                case '%':
+                    write(fd, "%", 2);
+                    break;
+                case 'd':
+                case 'X':
+                    tmpint = va_arg(v1, int);
+                    itoa(tmpint, tmpcharp, (format[i + 1] == 'd' ? 10 : 16));
+                    write(fd, tmpcharp, strlen(tmpcharp) + 1);
+                    break;
+                case 's':
+                    tmpcharp = va_arg(v1, char *);
+                    write(fd, tmpcharp, strlen(tmpcharp) + 1);
+                    break;
+            }
+            i++;
+        }
+        else {
+            write(fd, format + i, 2);
+        }
+    }
+    
+    va_end(v1);
+    return count;
 }
