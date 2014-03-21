@@ -57,20 +57,15 @@ void process_command(char *cmd)
         }
     }
 
-    write(fdout, token[0], strlen(token[0]) + 1);
-    write(fdout, ": command not found.\n\r", 23);
+    fio_printf(fdout, "%s: command not found.\n\r", token[0]);
 }
 
 //ps
 void ps_command(int argc, char* argv[])
 {
-	char ps_message[]="PID STATUS PRIORITY";
-	int ps_message_length = sizeof(ps_message);
 	int task_i;
 
-	write(fdout, &ps_message , ps_message_length);
-	write(fdout, &next_line , 3);
-
+        fio_printf(fdout, " PID STATUS PRIORITY\n\r");
 	for (task_i = 0; task_i < task_count; task_i++) {
 		char task_info_pid[2];
 		char task_info_status[2];
@@ -83,13 +78,7 @@ void ps_command(int argc, char* argv[])
 
 		itoa(tasks[task_i].priority, task_info_priority, 10);
 
-		write(fdout, &task_info_pid , 2);
-                write(fdout, "   ", 4);
-		write(fdout, &task_info_status , 2);
-                write(fdout, "     ", 6);
-		write(fdout, &task_info_priority , 3);
-
-		write(fdout, &next_line , 3);
+                fio_printf(fdout, "  %s     %s       %s\n\r", task_info_pid, task_info_status, task_info_priority);
 	}
 }
 
@@ -98,15 +87,11 @@ void ps_command(int argc, char* argv[])
 
 void help_command(int argc, char* argv[])
 {
-	const char help_desp[] = "This system has commands as follow\n\r\0";
 	int i;
 
-	write(fdout, &help_desp, sizeof(help_desp));
+        fio_printf(fdout, "This system has commands as follow\n\r");
 	for (i = 0; i < CMD_COUNT; i++) {
-		write(fdout, cmd_list[i].name, strlen(cmd_list[i].name) + 1);
-		write(fdout, ": ", 3);
-		write(fdout, cmd_list[i].desc, strlen(cmd_list[i].desc) + 1);
-		write(fdout, next_line, 3);
+            fio_printf(fdout, "%s: %s\n\r", cmd_list[i].name, cmd_list[i].desc);
 	}
 }
 
@@ -125,13 +110,13 @@ void echo_command(int argc, char* argv[])
 	}
 
 	for (; i < argc; i++) {
-		write(fdout, argv[i], strlen(argv[i]) + 1);
-		if (i < argc - 1)
-			write(fdout, " ", 2);
+            fio_printf(fdout, "%s", argv[i]);
+            if (i < argc - 1)
+                fio_printf(fdout, " ");
 	}
 
 	if (~flag & _n)
-		write(fdout, next_line, 3);
+            fio_printf(fdout, "\n\r");
 }
 
 //man
@@ -148,23 +133,7 @@ void man_command(int argc, char *argv[])
 	if (i >= CMD_COUNT)
 		return;
 
-	write(fdout, "NAME: ", 7);
-	write(fdout, cmd_list[i].name, strlen(cmd_list[i].name) + 1);
-	write(fdout, next_line, 3);
-	write(fdout, "DESCRIPTION: ", 14);
-	write(fdout, cmd_list[i].desc, strlen(cmd_list[i].desc) + 1);
-	write(fdout, next_line, 3);
-}
-
-void write_blank(int blank_num)
-{
-	char blank[] = " ";
-	int blank_count = 0;
-
-	while (blank_count <= blank_num) {
-		write(fdout, blank, sizeof(blank));
-		blank_count++;
-	}
+        fio_printf(fdout, "NAME: %s\n\rDESCRIPTION: %s\n\r", cmd_list[i].name, cmd_list[i].desc);
 }
 
 char hexof(int dec)
@@ -214,9 +183,7 @@ void xxd_command(int argc, char *argv[])
         readfd = open(argv[1], 0);
 
         if (readfd < 0) { /* Open error */
-            write(fdout, "xxd: ", 6);
-            write(fdout, argv[1], strlen(argv[1]) + 1);
-            write(fdout, ": No such file or directory\r\n", 31);
+            fio_printf(fdout, "xxd: %s: No such file or directory\r\n", argv[1]);
             return;
         }
     }
@@ -228,23 +195,23 @@ void xxd_command(int argc, char *argv[])
             if (pos % XXD_WIDTH == 0) { /* new line, print address */
                 for (i = sizeof(pos) * 8 - 4; i >= 0; i -= 4) {
                     chout[0] = hexof((pos >> i) & 0xF);
-                    write(fdout, chout, 2);
+                    fio_printf(fdout, "%s", chout);
                 }
 
-                write(fdout, ":", 2);
+                fio_printf(fdout, ":");
             }
 
             if (pos % 2 == 0) { /* whitespace for each 2 bytes */
-                write(fdout, " ", 2);
+                fio_printf(fdout, " ");
             }
 
             /* higher bits */
             chout[0] = hexof(ch >> 4);
-            write(fdout, chout, 2);
+            fio_printf(fdout, "%s", chout);
 
             /* lower bits*/
             chout[0] = hexof(ch & 0xF);
-            write(fdout, chout, 2);
+            fio_printf(fdout, "%s", chout);
 
             /* store in buffer */
             buf[pos % XXD_WIDTH] = ch;
@@ -252,14 +219,14 @@ void xxd_command(int argc, char *argv[])
             pos++;
 
             if (pos % XXD_WIDTH == 0) { /* end of line */
-                write(fdout, "  ", 3);
+                fio_printf(fdout, "  ");
 
                 for (i = 0; i < XXD_WIDTH; i++) {
                     chout[0] = char_filter(buf[i], '.');
-                    write(fdout, chout, 2);
+                    fio_printf(fdout, "%s", chout);
                 }
 
-                write(fdout, "\r\n", 3);
+                fio_printf(fdout, "\r\n");
             }
         }
         else { /* EOF */
@@ -271,19 +238,19 @@ void xxd_command(int argc, char *argv[])
         /* align */
         for (i = pos % XXD_WIDTH; i < XXD_WIDTH; i++) {
             if (i % 2 == 0) { /* whitespace for each 2 bytes */
-                write(fdout, " ", 2);
+                fio_printf(fdout, " ");
             }
-            write(fdout, "  ", 3);
+            fio_printf(fdout, "  ");
         }
 
-        write(fdout, "  ", 3);
+        fio_printf(fdout, "  ");
 
         for (i = 0; i < pos % XXD_WIDTH; i++) {
             chout[0] = char_filter(buf[i], '.');
-            write(fdout, chout, 2);
+            fio_printf(fdout, "%s", chout);
         }
 
-        write(fdout, "\r\n", 3);
+        fio_printf(fdout, "\r\n");
     }
 }
 
@@ -307,18 +274,14 @@ void cat_command(int argc, char *argv[])
         readfd = open(argv[1], 0);
 
         if (readfd < 0) { /* Open error */
-            write(fdout, "cat: ", 6);
-            write(fdout, argv[1], strlen(argv[1]) + 1);
-            write(fdout, ": No such file or directory\r\n", 31);
+            fio_printf(fdout, "cat: %s: No such file or directory\r\n", argv[1]);
             return;
         }
 
         lseek(readfd, 0, SEEK_SET);
         read(readfd, &entry, sizeof(entry));
         if(entry.isdir == 1) {
-            write(fdout, "cat: ", 6);
-            write(fdout, argv[1], strlen(argv[1]) + 1);
-            write(fdout, ": Is not a regular file\n\r", 26);
+            fio_printf(fdout, "cat: %s: Is not a regular file\r\n", argv[1]);
             return;
         }
     }
@@ -333,9 +296,9 @@ void cat_command(int argc, char *argv[])
             if (pos % CAT_BUFFER_SIZE == 0) { /* buffer full */
                 for (i = 0; i < CAT_BUFFER_SIZE; i++) {
                     chout[0] = buf[i];
-                    write(fdout, chout, 2);
+                    fio_printf(fdout, "%s", chout);
                     if(buf[i] == '\n') {
-                        write(fdout, "\r", 2);
+                        fio_printf(fdout, "\r");
                     }
                 }
             }
@@ -348,9 +311,9 @@ void cat_command(int argc, char *argv[])
     if (pos % CAT_BUFFER_SIZE != 0) { /* rest */
         for (i = 0; i < pos; i++) {
             chout[0] = buf[i];
-            write(fdout, chout, 2);
+            fio_printf(fdout, "%s", chout);
             if(buf[i] == '\n') {
-                write(fdout, "\r", 2);
+                fio_printf(fdout, "\r");
             }
         }
     }
@@ -371,44 +334,38 @@ void ls_command(int argc, char *argv[])
         readfd = open(argv[1], 0);
 
         if (readfd < 0) { /* Open error */
-            write(fdout, "ls: ", 5);
-            write(fdout, argv[1], strlen(argv[1]) + 1);
-            write(fdout, ": No such file or directory\r\n", 31);
+            fio_printf(fdout, "ls: %s: No such file or directory\r\n", argv[1]);
             return;
         }
         
         lseek(readfd, 0, SEEK_SET);
         read(readfd, &entry, sizeof(entry));
         if(entry.isdir != 1) {
-            write(fdout, "ls: ", 5);
-            write(fdout, argv[1], strlen(argv[1]) + 1);
-            write(fdout, ": Is not a directory\n\r", 23);
+            fio_printf(fdout, "ls: %s: Is not a directory\n\r", argv[1]);
             return;
         }
     }
 
-    // print tag
-    const char *tag_line = "  Size     Name   isdir\n\r";
-    write(fdout, tag_line, strlen(tag_line) + 1);
+    fio_printf(fdout, " Size     Name   isdir\n\r");
 
     char tmpout[32];
     lseek(readfd, sizeof(struct romfs_entry), SEEK_SET);
     while ((size = read(readfd, &entry, sizeof(entry))) && size != -1) {
         itoa(entry.len, tmpout, 10); // Process file len
-        for(i = 5 - strlen(tmpout); i >= 0; i--) {
-            write(fdout, " ", 2);
+        for(i = 4 - strlen(tmpout); i >= 0; i--) {
+            fio_printf(fdout, " ");
         }
-        write(fdout, tmpout, strlen(tmpout) + 1);
+        fio_printf(fdout, "%s", tmpout);
 
         for(i = 8 - strlen((char *)entry.name); i >= 0; i--) { // Process file name
-            write(fdout, " ", 2);
+            fio_printf(fdout, " ");
         }
-        write(fdout, entry.name, strlen((char *)entry.name) + 1);
+        fio_printf(fdout, "%s", entry.name);
 
         if(entry.isdir == 1) { // Process isdir
-            write(fdout, "    [*]", 8);
+            fio_printf(fdout, "    [*]");
         }
-        write(fdout, "\n\r", 3);
+        fio_printf(fdout, "\n\r");
 
         lseek(readfd, entry.len, SEEK_CUR);
     }
