@@ -28,6 +28,7 @@ size_t fio_printf(int fd, const char *format, ...)
     int i, count = 0;
     int tmpint;
     char *tmpcharp;
+    char tmpout[2] = {'0', '\0'};
 
     va_list(v1);
     va_start(v1, format);
@@ -52,7 +53,8 @@ size_t fio_printf(int fd, const char *format, ...)
             i++;
         }
         else {
-            write(fd, format + i, 2);
+            tmpout[0] = format[i];
+            write(fd, tmpout, 2);
         }
     }
     
