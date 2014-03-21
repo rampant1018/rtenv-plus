@@ -119,7 +119,7 @@ void serial_test_task()
 	fdin = open("/dev/tty0/in", 0);
 
         while(1) {
-            write(fdout, hint, strlen(hint));
+            write(fdout, hint, strlen(hint) + 1);
 
             for(count = 0;;) {
                 read(fdin, input, 1);
@@ -140,6 +140,7 @@ void serial_test_task()
                 }
             }
 
+            write(fdout, "\n\r", 3);
             process_command(buf);
         }
 }

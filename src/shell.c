@@ -12,14 +12,17 @@ extern size_t task_count;
 
 const char next_line[3] = {'\n','\r','\0'};
 
+typedef void cmdfunc(int, char *[]);
+
 /* Structure for command handler. */
 typedef struct {
     const char *name;
-    void (*func)(int, char **);
+    cmdfunc *fptr;
     const char *desc;
 } hcmd_entry;
 
-#define MKCL(n, d) {.name=#n, .func=n ## _command, .desc=d}
+#define MKCL(n, d) {.name=#n, .fptr=n ## _command, .desc=d}
+#define CMD_COUNT (sizeof(cmd_list)/sizeof(cmd_list[0]))
 
 const hcmd_entry cmd_list[] = {
     MKCL(echo, "Show words you input."),
@@ -33,7 +36,29 @@ const hcmd_entry cmd_list[] = {
 
 void process_command(char *cmd) 
 {
+    char *token[20];
+    int i;
+    int count = 0; // token count
+    int p = 0; // token start index
 
+    for(i = 0; cmd[i]; i++) { // process token split
+        if(cmd[i] == ' ') {
+            cmd[i] = '\0';
+            token[count++] = &cmd[p];
+            p = i + 1;
+        }
+    }
+    token[count++] = &cmd[p]; // last token
+
+    for(i = 0; i < CMD_COUNT; i++) { // process command
+        if(!strcmp(cmd_list[i].name, token[0])) {
+            cmd_list[i].fptr(count, token);
+            return;
+        }
+    }
+
+    write(fdout, token[0], strlen(token[0]) + 1);
+    write(fdout, ": command not found.\n\r", 23);
 }
 
 //ps
@@ -77,7 +102,7 @@ void help_command(int argc, char* argv[])
 	int i;
 
 	write(fdout, &help_desp, sizeof(help_desp));
-	for (i = 0; i < (sizeof(cmd_list) / sizeof(cmd_list[0])); i++) {
+	for (i = 0; i < CMD_COUNT; i++) {
 		write(fdout, cmd_list[i].name, strlen(cmd_list[i].name) + 1);
 		write(fdout, ": ", 3);
 		write(fdout, cmd_list[i].desc, strlen(cmd_list[i].desc) + 1);
@@ -117,10 +142,10 @@ void man_command(int argc, char *argv[])
 	if (argc < 2)
 		return;
 
-	for (i = 0; i < (sizeof(cmd_list) / sizeof(cmd_list[0])) && strcmp(cmd_list[i].name, argv[1]); i++)
+	for (i = 0; i < CMD_COUNT && strcmp(cmd_list[i].name, argv[1]); i++)
 		;
 
-	if (i >= (sizeof(cmd_list) / sizeof(cmd_list[0])))
+	if (i >= CMD_COUNT)
 		return;
 
 	write(fdout, "NAME: ", 7);
