@@ -64,7 +64,7 @@ int main (int argc, char *argv[])
             fread(&tmpStack, sizeof(struct user_thread_stack), 1, infile);
             fread(&tmpTime, sizeof(int), 1, infile);
 
-            fprintf(outfile, "%5d :pid: %d, status: %d, priority: %d\n", tmpTime, tmpTCB.pid, tmpTCB.status, tmpTCB.priority);
+            fprintf(outfile, "%5d :pid: %d, status: %d, priority: %d, ABI: %d\n", tmpTime, tmpTCB.pid, tmpTCB.status, tmpTCB.priority, tmpStack.r7);
         }
     }
 
