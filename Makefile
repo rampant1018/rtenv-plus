@@ -32,6 +32,7 @@ INCDIR = include \
 INCLUDES = $(addprefix -I,$(INCDIR))
 DATDIR = data
 TOOLDIR = tool
+LOGDIR = log
 
 SRC = $(wildcard $(addsuffix /*.c,$(SRCDIR))) \
       $(wildcard $(addsuffix /*.s,$(SRCDIR))) \
@@ -71,6 +72,6 @@ $(OUTDIR)/%.o: %.s
 	@$(CROSS_COMPILE)gcc $(CFLAGS) -MMD -MF $@.d -o $@ -c $(INCLUDES) $<
 
 clean:
-	rm -rf $(OUTDIR)
+	rm -rf $(OUTDIR) $(LOGDIR)
 
 -include $(DEP)
