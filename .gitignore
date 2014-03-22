@@ -7,3 +7,4 @@ main.map
 *.swp
 *~
 gdb.txt
+log
