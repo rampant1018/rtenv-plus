@@ -21,6 +21,8 @@
 #include "event-monitor.h"
 #include "romfs.h"
 #include "shell.h"
+#include "host.h"
+#include "clib.h"
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -187,7 +189,6 @@ struct file_request requests[TASK_LIMIT];
 struct list ready_list[PRIORITY_LIMIT + 1];  /* [0 ... 39] */
 struct event events[EVENT_LIMIT];
 
-
 int main()
 {
 	//struct task_control_block tasks[TASK_LIMIT];
@@ -246,10 +247,18 @@ int main()
 	list_push(&ready_list[tasks[task_count].priority], &tasks[task_count].list);
 	task_count++;
 
+
+        int hostfd = host_action(SYS_OPEN, "log/syslog", 4);
+
 	while (1) {
 		tasks[current_task].stack = activate(tasks[current_task].stack);
 		tasks[current_task].status = TASK_READY;
 		timeup = 0;
+
+                // Logger
+                host_action(SYS_WRITE, hostfd, &tasks[current_task], sizeof(struct task_control_block));
+                host_action(SYS_WRITE, hostfd, &tasks[current_task].stack, sizeof(struct user_thread_stack));
+                host_action(SYS_WRITE, hostfd, &tick_count, sizeof(int));
 
 		switch (tasks[current_task].stack->r7) {
 		case 0x1: /* fork */
@@ -445,6 +454,7 @@ int main()
 		task = list_entry(list, struct task_control_block, list);
 		current_task = task->pid;
 	}
+        host_action(SYS_CLOSE, hostfd);
 
 	return 0;
 }
