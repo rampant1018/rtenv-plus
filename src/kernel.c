@@ -257,7 +257,7 @@ int main()
 
                 // Logger
                 host_action(SYS_WRITE, hostfd, &tasks[current_task], sizeof(struct task_control_block));
-                host_action(SYS_WRITE, hostfd, &tasks[current_task].stack, sizeof(struct user_thread_stack));
+                host_action(SYS_WRITE, hostfd, tasks[current_task].stack, sizeof(struct user_thread_stack));
                 host_action(SYS_WRITE, hostfd, &tick_count, sizeof(int));
 
 		switch (tasks[current_task].stack->r7) {
