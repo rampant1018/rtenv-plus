@@ -45,6 +45,9 @@ int main (int argc, char *argv[])
         }
     }
 
+    //printf("%d %d %d %d %d\n", sizeof(tmpTCB.stack), sizeof(tmpTCB.pid), sizeof(tmpTCB.status), sizeof(tmpTCB.priority), sizeof(tmpTCB.list));
+    char tmpTrash[32];
+
     infile = fopen(inname, "r");
     outfile = fopen(outname, "w");
     if(infile == NULL || outfile == NULL) {
@@ -53,7 +56,11 @@ int main (int argc, char *argv[])
     }
     else {
         while(!feof(infile)) {
-            fread(&tmpTCB, 24, 1, infile);
+            fread(tmpTrash, 4, 1, infile);
+            fread(&tmpTCB.pid, 4, 1, infile);
+            fread(&tmpTCB.status, 4, 1, infile);
+            fread(&tmpTCB.priority, 4, 1, infile);
+            fread(tmpTrash, 8, 1, infile);
             fread(&tmpStack, sizeof(struct user_thread_stack), 1, infile);
             fread(&tmpTime, sizeof(int), 1, infile);
 
