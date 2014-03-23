@@ -1,6 +1,6 @@
 source test/qemudbg_init.in
 set logging on
-set $r0=strlen("man123")
+set $r0=strlen("man")
 if $r0==3
    echo Pass: strlen("man") is 3\n
 else
