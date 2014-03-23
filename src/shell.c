@@ -32,7 +32,8 @@ const hcmd_entry cmd_list[] = {
     MKCL(ps, "List all the processes."),
     MKCL(xxd, "Make a hexdump."),
     MKCL(cat, "Print the file on the standard output."),
-    MKCL(ls, "List directory contents.")
+    MKCL(ls, "List directory contents."),
+    MKCL(history, "Show history command.")
 };
 
 #define HISTORY_MAX_COUNT 8
@@ -141,8 +142,8 @@ void shell_task()
 
             fio_printf(fdout, "\n\r");
             if(strlen(buf) != 0) {
-                history_add(buf);
                 process_command(buf);
+                history_add(buf);
             }
         }
 }
@@ -471,5 +472,17 @@ void ls_command(int argc, char *argv[])
         fio_printf(fdout, "\n\r");
 
         lseek(readfd, entry.len, SEEK_CUR);
+    }
+}
+
+// history
+void history_command(int argc, char *argv[])
+{
+    int i = 0;
+    history_reset();
+    history_next(); // skip the first command
+
+    for(i = 0; i < history_count; i++) {
+        fio_printf(fdout, "%s\n\r", history_next());
     }
 }
