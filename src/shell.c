@@ -35,11 +35,49 @@ const hcmd_entry cmd_list[] = {
     MKCL(ls, "List directory contents.")
 };
 
+#define HISTORY_MAX_COUNT 8
+#define HISTORY_MAX_LEN 32
+char history[HISTORY_MAX_COUNT][HISTORY_MAX_LEN];
+int history_head = 0, history_tail = 0;
+int history_count = 0;
+int history_index = 0;
+
+void history_reset()
+{
+    history_index = history_tail;
+}
+
+void history_add(char *cmd)
+{
+    history_tail = (history_head + history_count) % HISTORY_MAX_COUNT;
+
+    strcpy(history[history_tail], cmd);
+
+    if(history_count == HISTORY_MAX_COUNT) { // full then overwrite
+        history_head = (history_head + 1) % HISTORY_MAX_COUNT;
+    }
+    else {
+        history_count++;
+    }
+}
+
+char *history_prev()
+{
+    if(history_index == 0) {
+        history_index = history_count - 1;
+        return history[0];
+    }
+    else {
+        return history[history_index--];
+    }
+}
+
+
 #define SERIAL_TASK_BUFSIZE 128
 void shell_task()
 {
 	char hint[] =  USER_NAME "@" USER_NAME "-STM32:~$ ";
-        char input[2] = {'0', '\0'};
+        char input[2] = {0};
         char buf[SERIAL_TASK_BUFSIZE] = {0};
         int count;
 
@@ -49,6 +87,7 @@ void shell_task()
         while(1) {
             fio_printf(fdout, "%s", hint);
 
+            history_reset();
             for(count = 0;;) {
                 read(fdin, input, 1);
 
@@ -78,6 +117,7 @@ void shell_task()
             }
 
             fio_printf(fdout, "\n\r");
+            history_add(buf);
             process_command(buf);
         }
 }
