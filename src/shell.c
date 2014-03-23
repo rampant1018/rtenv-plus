@@ -72,6 +72,11 @@ char *history_prev()
     }
 }
 
+void clear_line(int count) {
+    for(; count > 0; count--) {
+        fio_printf(fdout, "\b \b");
+    }
+}
 
 #define SERIAL_TASK_BUFSIZE 128
 void shell_task()
@@ -104,14 +109,18 @@ void shell_task()
                 else if(input[0] == '\033') {  // Control code
                     read(fdin, input, 2); // first character is '[' then key code
                     if(input[1] == 'A') { // Arrow up
-                        fio_printf(fdout, history_prev());
+                        clear_line(count);
+                        strcpy(buf, history_prev());
+                        fio_printf(fdout, "%s", buf);
+                        count = strlen(buf);
                     }
                     else if(input[1] == 'B') { // Arrow down
-                        fio_printf(fdout, "Down");
+                        clear_line(count);
                     }
                 }
                 else if(count < SERIAL_TASK_BUFSIZE) {
                     buf[count++] = input[0];
+                    input[1] = '\0';
                     fio_printf(fdout, "%s", input);
                 }
             }
