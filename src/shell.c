@@ -72,6 +72,17 @@ char *history_prev()
     }
 }
 
+char *history_next()
+{
+    if(history_index == history_count - 1) {
+        history_index = 0;
+        return history[history_count - 1];
+    }
+    else {
+        return history[history_index++];
+    }
+}
+
 void clear_line(int count) {
     for(; count > 0; count--) {
         fio_printf(fdout, "\b \b");
@@ -116,6 +127,9 @@ void shell_task()
                     }
                     else if(input[1] == 'B') { // Arrow down
                         clear_line(count);
+                        strcpy(buf, history_next());
+                        fio_printf(fdout, "%s", buf);
+                        count = strlen(buf);
                     }
                 }
                 else if(count < SERIAL_TASK_BUFSIZE) {
@@ -126,8 +140,10 @@ void shell_task()
             }
 
             fio_printf(fdout, "\n\r");
-            history_add(buf);
-            process_command(buf);
+            if(strlen(buf) != 0) {
+                history_add(buf);
+                process_command(buf);
+            }
         }
 }
 
