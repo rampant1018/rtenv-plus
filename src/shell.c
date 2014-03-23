@@ -47,7 +47,7 @@ void shell_task()
 	fdin = open("/dev/tty0/in", 0);
 
         while(1) {
-            write(fdout, hint, strlen(hint) + 1);
+            fio_printf(fdout, "%s", hint);
 
             for(count = 0;;) {
                 read(fdin, input, 1);
@@ -59,16 +59,16 @@ void shell_task()
                 else if(input[0] == 127 || input[0] == '\b') {
                     if(count > 0) {
                         count--;
-                        write(fdout, "\b \b", 4);
+                        fio_printf(fdout, "\b \b");
                     }
                 }
                 else if(count < SERIAL_TASK_BUFSIZE) {
                     buf[count++] = input[0];
-                    write(fdout, input, 2);
+                    fio_printf(fdout, "%s", input);
                 }
             }
 
-            write(fdout, "\n\r", 3);
+            fio_printf(fdout, "\n\r");
             process_command(buf);
         }
 }
