@@ -21,6 +21,11 @@
 #include "event-monitor.h"
 #include "romfs.h"
 #include "shell.h"
+#include "malloc.h"
+
+#ifdef TEST
+#include "unit_test.h"
+#endif
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -407,6 +412,7 @@ int main()
 		task = list_entry(list, struct task_control_block, list);
 		current_task = task->pid;
 	}
+
 
 	return 0;
 }

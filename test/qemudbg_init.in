@@ -1,0 +1,2 @@
+file build/main.elf
+target remote :3333
