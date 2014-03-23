@@ -3,6 +3,7 @@
 #include "string.h"
 #include "syscall.h"
 #include "file.h"
+#include "mqueue.h"
 #include "clib.h"
 
 extern int fdout;
@@ -33,6 +34,45 @@ const hcmd_entry cmd_list[] = {
     MKCL(cat, "Print the file on the standard output."),
     MKCL(ls, "List directory contents.")
 };
+
+#define SERIAL_TASK_BUFSIZE 128
+void shell_task()
+{
+	char hint[] =  USER_NAME "@" USER_NAME "-STM32:~$ ";
+        char input[2] = {'0', '\0'};
+        char buf[SERIAL_TASK_BUFSIZE] = {0};
+        int count;
+
+	fdout = mq_open("/tmp/mqueue/out", 0);
+	fdin = open("/dev/tty0/in", 0);
+
+        while(1) {
+            write(fdout, hint, strlen(hint) + 1);
+
+            for(count = 0;;) {
+                read(fdin, input, 1);
+
+                if(input[0] == '\r' || input[0] == '\n') {
+                    buf[count] = '\0';
+                    break;
+                }
+                else if(input[0] == 127 || input[0] == '\b') {
+                    if(count > 0) {
+                        count--;
+                        write(fdout, "\b \b", 4);
+                    }
+                }
+                else if(count < SERIAL_TASK_BUFSIZE) {
+                    buf[count++] = input[0];
+                    write(fdout, input, 2);
+                }
+            }
+
+            write(fdout, "\n\r", 3);
+            process_command(buf);
+        }
+}
+
 
 void process_command(char *cmd) 
 {
