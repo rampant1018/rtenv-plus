@@ -62,6 +62,15 @@ void shell_task()
                         fio_printf(fdout, "\b \b");
                     }
                 }
+                else if(input[0] == '\033') {  // Control code
+                    read(fdin, input, 2); // first character is '[' then key code
+                    if(input[1] == 'A') { // Arrow up
+                        fio_printf(fdout, history_prev());
+                    }
+                    else if(input[1] == 'B') { // Arrow down
+                        fio_printf(fdout, "Down");
+                    }
+                }
                 else if(count < SERIAL_TASK_BUFSIZE) {
                     buf[count++] = input[0];
                     fio_printf(fdout, "%s", input);
