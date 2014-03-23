@@ -213,6 +213,10 @@ int main()
 	list_push(&ready_list[tasks[task_count].priority], &tasks[task_count].list);
 	task_count++;
 
+#ifdef TEST
+        unit_test();
+#endif
+
 	while (1) {
 		tasks[current_task].stack = activate(tasks[current_task].stack);
 		tasks[current_task].status = TASK_READY;

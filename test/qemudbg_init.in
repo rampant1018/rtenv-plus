@@ -1,2 +1,4 @@
 file build/main.elf
 target remote :3333
+b test/unit_test.c:4
+set logging on
