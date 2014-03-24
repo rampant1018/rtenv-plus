@@ -23,6 +23,7 @@ int main (int argc, char *argv[])
     struct task_control_block tmpTCB;
     struct user_thread_stack tmpStack;
     int tmpTime;
+    int tmpCs;
 
     while ((c = getopt(argc, argv, "o:d:")) != -1) {
         switch (c) {
@@ -56,6 +57,7 @@ int main (int argc, char *argv[])
     }
     else {
         while(!feof(infile)) {
+            fread(&tmpCs, sizeof(int), 1, infile);
             fread(tmpTrash, 4, 1, infile);
             fread(&tmpTCB.pid, 4, 1, infile);
             fread(&tmpTCB.status, 4, 1, infile);
@@ -64,7 +66,7 @@ int main (int argc, char *argv[])
             fread(&tmpStack, sizeof(struct user_thread_stack), 1, infile);
             fread(&tmpTime, sizeof(int), 1, infile);
 
-            fprintf(outfile, "%5d :pid: %d, status: %d, priority: %d, ABI: %d\n", tmpTime, tmpTCB.pid, tmpTCB.status, tmpTCB.priority, tmpStack.r7);
+            fprintf(outfile, "%5d %5d :pid: %d, status: %d, priority: %d, ABI: %d\n", tmpCs, tmpTime, tmpTCB.pid, tmpTCB.status, tmpTCB.priority, tmpStack.r7);
         }
     }
 
