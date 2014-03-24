@@ -30,10 +30,11 @@ enum HOST_SYSCALL{
 
 int host_call(enum HOST_SYSCALL, void *argv) __attribute__((naked));
 
-int host_system(va_list v1);
 int host_open(va_list v1);
 int host_close(va_list v1);
 int host_write(va_list v1);
+int host_clock(va_list v1);
+int host_system(va_list v1);
 
 int host_action(enum HOST_SYSCALL action, ...);
 
