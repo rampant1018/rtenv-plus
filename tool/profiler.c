@@ -24,6 +24,7 @@ int main (int argc, char *argv[])
     struct user_thread_stack tmpStack;
     int tmpTime;
     int tmpCs;
+    int tmpSysTick;
 
     while ((c = getopt(argc, argv, "o:d:")) != -1) {
         switch (c) {
@@ -65,8 +66,8 @@ int main (int argc, char *argv[])
             fread(tmpTrash, 8, 1, infile);
             fread(&tmpStack, sizeof(struct user_thread_stack), 1, infile);
             fread(&tmpTime, sizeof(int), 1, infile);
-
-            fprintf(outfile, "%5d %5d :pid: %d, status: %d, priority: %d, ABI: %d\n", tmpCs, tmpTime, tmpTCB.pid, tmpTCB.status, tmpTCB.priority, tmpStack.r7);
+            fread(&tmpSysTick, sizeof(int), 1, infile);
+            fprintf(outfile, "%5d %5d.%d:pid: %d, status: %d, priority: %d, ABI: %d\n", tmpCs, tmpTime, tmpSysTick, tmpTCB.pid, tmpTCB.status, tmpTCB.priority, tmpStack.r7);
         }
     }
 

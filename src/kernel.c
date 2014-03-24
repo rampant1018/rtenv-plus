@@ -217,6 +217,8 @@ int main()
 #ifdef TEST
         unit_test();
 #endif
+        volatile int *current_systick = (void *)0xe000e018;
+        volatile int *systick_load = (void *)0xe000e014;
 
         int hostfd = host_action(SYS_OPEN, "log/syslog", 4);
 	while (1) {
@@ -226,10 +228,13 @@ int main()
 
                 // Logger
                 int current_cs = host_action(SYS_CLOCK);
+                int systick_result = *systick_load - *current_systick;
+
                 host_action(SYS_WRITE, hostfd, &current_cs, sizeof(int));
                 host_action(SYS_WRITE, hostfd, &tasks[current_task], sizeof(struct task_control_block));
                 host_action(SYS_WRITE, hostfd, tasks[current_task].stack, sizeof(struct user_thread_stack));
                 host_action(SYS_WRITE, hostfd, &tick_count, sizeof(int));
+                host_action(SYS_WRITE, hostfd, &systick_result, sizeof(int));
 
 		switch (tasks[current_task].stack->r7) {
 		case 0x1: /* fork */
