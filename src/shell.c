@@ -3,6 +3,7 @@
 #include "string.h"
 #include "syscall.h"
 #include "file.h"
+#include "mqueue.h"
 #include "clib.h"
 
 extern int fdout;
@@ -31,8 +32,122 @@ const hcmd_entry cmd_list[] = {
     MKCL(ps, "List all the processes."),
     MKCL(xxd, "Make a hexdump."),
     MKCL(cat, "Print the file on the standard output."),
-    MKCL(ls, "List directory contents.")
+    MKCL(ls, "List directory contents."),
+    MKCL(history, "Show history command.")
 };
+
+#define HISTORY_MAX_COUNT 8
+#define HISTORY_MAX_LEN 32
+char history[HISTORY_MAX_COUNT][HISTORY_MAX_LEN];
+int history_head = 0, history_tail = 0;
+int history_count = 0;
+int history_index = 0;
+
+void history_reset()
+{
+    history_index = history_tail;
+}
+
+void history_add(char *cmd)
+{
+    history_tail = (history_head + history_count) % HISTORY_MAX_COUNT;
+
+    strcpy(history[history_tail], cmd);
+
+    if(history_count == HISTORY_MAX_COUNT) { // full then overwrite
+        history_head = (history_head + 1) % HISTORY_MAX_COUNT;
+    }
+    else {
+        history_count++;
+    }
+}
+
+char *history_prev()
+{
+    if(history_index == 0) {
+        history_index = history_count - 1;
+        return history[0];
+    }
+    else {
+        return history[history_index--];
+    }
+}
+
+char *history_next()
+{
+    if(history_index == history_count - 1) {
+        history_index = 0;
+        return history[history_count - 1];
+    }
+    else {
+        return history[history_index++];
+    }
+}
+
+void clear_line(int count) {
+    for(; count > 0; count--) {
+        fio_printf(fdout, "\b \b");
+    }
+}
+
+#define SERIAL_TASK_BUFSIZE 128
+void shell_task()
+{
+	char hint[] =  USER_NAME "@" USER_NAME "-STM32:~$ ";
+        char input[2] = {0};
+        char buf[SERIAL_TASK_BUFSIZE] = {0};
+        int count;
+
+	fdout = mq_open("/tmp/mqueue/out", 0);
+	fdin = open("/dev/tty0/in", 0);
+
+        while(1) {
+            fio_printf(fdout, "%s", hint);
+
+            history_reset();
+            for(count = 0;;) {
+                read(fdin, input, 1);
+
+                if(input[0] == '\r' || input[0] == '\n') {
+                    buf[count] = '\0';
+                    break;
+                }
+                else if(input[0] == 127 || input[0] == '\b') {
+                    if(count > 0) {
+                        count--;
+                        fio_printf(fdout, "\b \b");
+                    }
+                }
+                else if(input[0] == '\033') {  // Control code
+                    read(fdin, input, 2); // first character is '[' then key code
+                    if(input[1] == 'A') { // Arrow up
+                        clear_line(count);
+                        strcpy(buf, history_prev());
+                        fio_printf(fdout, "%s", buf);
+                        count = strlen(buf);
+                    }
+                    else if(input[1] == 'B') { // Arrow down
+                        clear_line(count);
+                        strcpy(buf, history_next());
+                        fio_printf(fdout, "%s", buf);
+                        count = strlen(buf);
+                    }
+                }
+                else if(count < SERIAL_TASK_BUFSIZE) {
+                    buf[count++] = input[0];
+                    input[1] = '\0';
+                    fio_printf(fdout, "%s", input);
+                }
+            }
+
+            fio_printf(fdout, "\n\r");
+            if(strlen(buf) != 0) {
+                process_command(buf);
+                history_add(buf);
+            }
+        }
+}
+
 
 void process_command(char *cmd) 
 {
@@ -357,5 +472,17 @@ void ls_command(int argc, char *argv[])
         fio_printf(fdout, "\n\r");
 
         lseek(readfd, entry.len, SEEK_CUR);
+    }
+}
+
+// history
+void history_command(int argc, char *argv[])
+{
+    int i = 0;
+    history_reset();
+    history_next(); // skip the first command
+
+    for(i = 0; i < history_count; i++) {
+        fio_printf(fdout, "%s\n\r", history_next());
     }
 }

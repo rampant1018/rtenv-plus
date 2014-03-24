@@ -8,3 +8,5 @@ main.map
 *~
 gdb.txt
 log
+core
+test/*.txt

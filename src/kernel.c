@@ -23,6 +23,11 @@
 #include "shell.h"
 #include "host.h"
 #include "clib.h"
+#include "malloc.h"
+
+#ifdef TEST
+#include "unit_test.h"
+#endif
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -109,44 +114,6 @@ void rs232_xmit_msg_task()
 }
 
 
-#define SERIAL_TASK_BUFSIZE 128
-void serial_test_task()
-{
-	char hint[] =  USER_NAME "@" USER_NAME "-STM32:~$ ";
-        char input[2] = {'0', '\0'};
-        char buf[SERIAL_TASK_BUFSIZE] = {0};
-        int count;
-
-	fdout = mq_open("/tmp/mqueue/out", 0);
-	fdin = open("/dev/tty0/in", 0);
-
-        while(1) {
-            write(fdout, hint, strlen(hint) + 1);
-
-            for(count = 0;;) {
-                read(fdin, input, 1);
-
-                if(input[0] == '\r' || input[0] == '\n') {
-                    buf[count] = '\0';
-                    break;
-                }
-                else if(input[0] == 127 || input[0] == '\b') {
-                    if(count > 0) {
-                        count--;
-                        write(fdout, "\b \b", 4);
-                    }
-                }
-                else if(count < SERIAL_TASK_BUFSIZE) {
-                    buf[count++] = input[0];
-                    write(fdout, input, 2);
-                }
-            }
-
-            write(fdout, "\n\r", 3);
-            process_command(buf);
-        }
-}
-
 void first()
 {
 	if (!fork()) setpriority(0, 0), pathserver();
@@ -155,7 +122,7 @@ void first()
 	if (!fork()) setpriority(0, 0), serialout(USART2, USART2_IRQn);
 	if (!fork()) setpriority(0, 0), serialin(USART2, USART2_IRQn);
 	if (!fork()) rs232_xmit_msg_task();
-	if (!fork()) setpriority(0, PRIORITY_DEFAULT - 10), serial_test_task();
+	if (!fork()) setpriority(0, PRIORITY_DEFAULT - 10), shell_task();
 
 	setpriority(0, PRIORITY_LIMIT);
 
@@ -247,9 +214,11 @@ int main()
 	list_push(&ready_list[tasks[task_count].priority], &tasks[task_count].list);
 	task_count++;
 
+#ifdef TEST
+        unit_test();
+#endif
 
         int hostfd = host_action(SYS_OPEN, "log/syslog", 4);
-
 	while (1) {
 		tasks[current_task].stack = activate(tasks[current_task].stack);
 		tasks[current_task].status = TASK_READY;
@@ -455,6 +424,7 @@ int main()
 		current_task = task->pid;
 	}
         host_action(SYS_CLOSE, hostfd);
+
 
 	return 0;
 }
