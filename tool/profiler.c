@@ -11,8 +11,23 @@
 
 #define ERR(err) (ERR_##err)
 
-#define MKTL(n, d) {.task_name=#n, .task_identifier=d}
+// task structure
+#define MAKE_TASK(n, d) {.task_name=#n, .task_identifier=d}
 #define TASK_COUNT (sizeof(task_list)/sizeof(task_list[0]))
+struct task_t {
+    char *task_name;
+    char task_identifier;
+};
+const struct task_t task_list[] = {
+    MAKE_TASK("first", '!'),
+    MAKE_TASK("pathserver", '@'),
+    MAKE_TASK("romdev_driver", '#'),
+    MAKE_TASK("romfs_server", '$'),
+    MAKE_TASK("serialout", '%'),
+    MAKE_TASK("serialin", '^'),
+    MAKE_TASK("rs232_xmit_msg_task", '&'),
+    MAKE_TASK("shell_task", '*'),
+};
 
 int main (int argc, char *argv[])
 {
@@ -29,22 +44,6 @@ int main (int argc, char *argv[])
     int tmpTime;
     int tmpCs;
     int tmpSysTick;
-
-    // task structure
-    struct task_t {
-        char *task_name;
-        char task_identifier;
-    };
-    const struct task_t task_list[] = {
-        MKTL("first", '!'),
-        MKTL("pathserver", '@'),
-        MKTL("romdev_driver", '#'),
-        MKTL("romfs_server", '$'),
-        MKTL("serialout", '%'),
-        MKTL("serialin", '^'),
-        MKTL("rs232_xmit_msg_task", '&'),
-        MKTL("shell_task", '*'),
-    };
 
     while ((c = getopt(argc, argv, "o:d:")) != -1) {
         switch (c) {
