@@ -109,8 +109,7 @@ int main (int argc, char *argv[])
                 continue;
             }
 
-            //fprintf(outfile, "%5d %f:pid: %d, status: %d, priority: %d, ABI: %d\n", tmpCs, tmpTimeSec, tmpTCB.pid, tmpTCB.status, tmpTCB.priority, tmpStack.r7);
-            fprintf(outfile, "#%d\n", (int)(tmpTimeSec * 1000000.0));
+            fprintf(outfile, "#%d\n", (int)(tmpTimeSec * 10000.0));
             for(i = 0; i < TASK_COUNT; i++) {
                 if(tmpTCB.pid == i) {
                     fprintf(outfile, "1%c\n", task_list[i].task_identifier);
